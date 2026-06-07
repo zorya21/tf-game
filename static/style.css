@@ -1,0 +1,822 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --page-width: 1120px;
+    --section-bg: rgba(255, 255, 255, 0.93);
+    --text-main: #222;
+    --text-sub: #555;
+    --border-main: #e2e0dd;
+    --dark-btn: #2f2f2f;
+    --dark-btn-hover: #444;
+    --light-btn: #eeeeee;
+    --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --radius-section: 24px;
+    --radius-card: 22px;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    background: url("/static/bg.jpg") no-repeat center center fixed;
+    background-size: cover;
+    color: var(--text-main);
+}
+
+/* 页面整体 */
+.page {
+    width: min(var(--page-width), 94%);
+    margin: 0 auto;
+    padding: 24px 0 60px;
+}
+
+.center-page {
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+h1,
+h2 {
+    margin-top: 0;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+h1 {
+    font-size: clamp(26px, 4vw, 38px);
+}
+
+h2 {
+    font-size: clamp(20px, 2.4vw, 26px);
+}
+
+p {
+    color: var(--text-sub);
+}
+
+.description {
+    line-height: 1.7;
+    max-width: 700px;
+}
+
+/* 顶部栏 */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.small-link {
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #333;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
+}
+
+/* 按钮统一风格 */
+.main-btn,
+.danger-btn,
+.question-form button,
+.answer-form button,
+.guess-form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+    background: var(--dark-btn);
+    color: #ffffff;
+    min-height: 42px;
+}
+
+.main-btn {
+    font-size: 18px;
+    padding: 14px 26px;
+    background: #1f1f1f;
+}
+
+.danger-btn {
+    background: #777;
+    color: white;
+    margin-top: 20px;
+}
+
+button:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+button:disabled,
+.guess-button:disabled,
+#skipGuessButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 只让电脑端触发 hover，避免手机点击后颜色卡住 */
+@media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover {
+        background: var(--dark-btn-hover);
+    }
+
+    .person-card:hover {
+        border-color: #aaa;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    }
+
+    .guess-form button:not(:disabled):hover {
+        background: #555;
+    }
+
+    .modal-cancel-btn:not(:disabled):hover {
+        background: #e0e0e0;
+    }
+
+    .modal-confirm-btn:not(:disabled):hover {
+        background: #444;
+    }
+
+    .guess-phase-actions button:not(:disabled):hover {
+        background: #dddddd;
+    }
+
+    .small-link:hover {
+        background: #f6f6f6;
+    }
+}
+
+/* 卡片式区块 */
+.link-box,
+.secret-section,
+.question-section,
+.log-section,
+.board-section {
+    background: var(--section-bg);
+    padding: 22px;
+    border-radius: var(--radius-section);
+    margin-bottom: 24px;
+    border: 1px solid var(--border-main);
+    box-shadow: var(--shadow-soft);
+}
+
+.link-box a {
+    word-break: break-all;
+    color: #333;
+}
+
+/* 对方秘密人物卡 */
+.secret-card {
+    width: 160px;
+    background: #fafafa;
+    border-radius: var(--radius-card);
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    font-weight: 600;
+}
+
+.secret-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* 提问区 */
+.question-form {
+    display: flex;
+    gap: 10px;
+}
+
+.question-form input {
+    flex: 1;
+    border: 1px solid #d7d5d2;
+    background: #fbfbfb;
+    border-radius: 999px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    outline: none;
+    min-height: 44px;
+}
+
+.question-form input:focus {
+    border-color: #999;
+    background: #ffffff;
+}
+
+.question-form button {
+    background: var(--dark-btn);
+    color: white;
+    white-space: nowrap;
+}
+
+/* 人物卡池：电脑默认 6 列 */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.person-card {
+    background: #ffffff;
+    border-radius: var(--radius-card);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    border: 1px solid #e1dfdc;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    transition: transform 0.08s ease, border 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.person-card:active {
+    transform: scale(0.98);
+}
+
+.person-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    display: block;
+    filter: none;
+    opacity: 1;
+}
+
+.person-name {
+    margin: 8px 0;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+}
+
+/* 已排除状态 */
+.person-card.eliminated {
+    opacity: 1;
+    border: 1.5px solid #999;
+    background: #f7f7f7;
+}
+
+.person-card.eliminated img {
+    filter: none;
+    opacity: 1;
+}
+
+.person-card.eliminated::after {
+    content: "已排除";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 1px solid #cfcfcf;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+/* 猜测按钮 */
+.guess-form button {
+    width: 100%;
+    background: #3a3a3a;
+    color: white;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+/* 问题记录 */
+.log-card {
+    background: #fbfbfb;
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #e0dedb;
+}
+
+.answer-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.answer-form button {
+    background: #333;
+    color: white;
+    min-width: 72px;
+}
+
+.answer-text {
+    color: #333;
+    font-weight: 600;
+}
+
+.waiting-text {
+    color: #888;
+}
+
+.correct-text {
+    color: #333;
+    font-weight: 600;
+}
+
+.wrong-text {
+    color: #777;
+    font-weight: 600;
+}
+
+.empty-text {
+    color: #888;
+}
+
+/* 胜利提示 */
+.winner-box {
+    background: #ffffff;
+    color: #222;
+    padding: 18px;
+    border-radius: 22px;
+    margin-bottom: 24px;
+    font-size: clamp(18px, 2.5vw, 22px);
+    font-weight: 600;
+    border: 1px solid #d8d6d2;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+/* 弹窗 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(40, 40, 40, 0.28);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-box {
+    width: min(360px, 92vw);
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid #dedbd7;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+    text-align: center;
+}
+
+.modal-box h2 {
+    margin-bottom: 12px;
+    font-size: 22px;
+    color: #222;
+}
+
+.modal-box p {
+    margin: 8px 0;
+    color: #444;
+}
+
+.modal-box strong {
+    color: #111;
+    font-size: 20px;
+}
+
+.modal-hint {
+    font-size: 14px;
+    color: #888 !important;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 15px;
+    min-height: 44px;
+}
+
+.modal-cancel-btn {
+    background: #eeeeee;
+    color: #333;
+}
+
+.modal-confirm-btn {
+    background: var(--dark-btn);
+    color: white;
+}
+
+/* 首页 */
+.home-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 24px;
+    max-width: 420px;
+}
+
+.join-form {
+    display: flex;
+    gap: 10px;
+}
+
+.join-form input {
+    flex: 1;
+    border: 1px solid #d7d5d2;
+    background: #fbfbfb;
+    border-radius: 999px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    outline: none;
+    text-transform: uppercase;
+    min-height: 44px;
+}
+
+.join-form input:focus {
+    border-color: #999;
+    background: #ffffff;
+}
+
+.join-form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--dark-btn);
+    color: white;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.error-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-top: 18px;
+    max-width: 420px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.waiting-room-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 22px;
+    padding: 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    line-height: 1.7;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 当前轮次提示 */
+.turn-status-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 22px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.round-title {
+    margin: 18px 0 10px;
+    font-weight: 700;
+    color: #222;
+    font-size: 15px;
+}
+
+.question-card {
+    position: relative;
+    max-width: 86%;
+    padding: 16px;
+}
+
+/* 我发出的问题：靠右 */
+.my-question {
+    margin-left: auto;
+    margin-right: 0;
+    background: #f1f1f1;
+    border: 1px solid #2f2f2f;
+    border-right: 7px solid #2f2f2f;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 对方发出的问题：靠左 */
+.opponent-question {
+    margin-left: 0;
+    margin-right: auto;
+    background: #ffffff;
+    border: 1px solid #d8d6d2;
+    border-left: 7px solid #b8b8b8;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.question-tag {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.my-question .question-tag {
+    background: #2f2f2f;
+    color: #ffffff;
+}
+
+.opponent-question .question-tag {
+    background: #eeeeee;
+    color: #444;
+}
+
+.my-question p {
+    text-align: right;
+}
+
+.opponent-question p {
+    text-align: left;
+}
+
+.my-question .answer-text {
+    text-align: right;
+}
+
+.opponent-question .answer-text,
+.opponent-question .waiting-text {
+    text-align: left;
+}
+
+.guess-phase-actions {
+    margin: 14px 0 18px;
+}
+
+.guess-phase-actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--light-btn);
+    color: #333;
+    min-height: 44px;
+}
+
+/* iPad 横屏 / 小电脑：仍然保持 6 列 */
+@media (max-width: 1180px) {
+    .page {
+        width: min(1040px, 94%);
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .person-card {
+        padding: 8px;
+    }
+
+    .guess-form button {
+        font-size: 13px;
+        padding: 8px 5px;
+    }
+}
+
+/* iPad 竖屏：4 列 */
+@media (max-width: 900px) {
+    .page {
+        width: 94%;
+        padding-top: 20px;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 20px;
+    }
+
+    .question-card {
+        max-width: 92%;
+    }
+}
+
+/* 手机端：3 列 */
+@media (max-width: 600px) {
+    body {
+        background-attachment: scroll;
+        background-position: center top;
+    }
+
+    .page {
+        width: 94%;
+        padding: 16px 0 44px;
+    }
+
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .small-link {
+        width: fit-content;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 16px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .person-card {
+        padding: 7px;
+        border-radius: 16px;
+    }
+
+    .person-card img {
+        border-radius: 12px;
+    }
+
+    .person-name {
+        font-size: 13px;
+        margin: 6px 0;
+    }
+
+    .guess-form button {
+        font-size: 11px;
+        padding: 7px 3px;
+        min-height: 36px;
+    }
+
+    .person-card.eliminated::after {
+        top: 7px;
+        right: 7px;
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .question-form {
+        flex-direction: column;
+    }
+
+    .question-form input,
+    .question-form button {
+        width: 100%;
+    }
+
+    .secret-card {
+        width: 140px;
+        margin: 0 auto;
+    }
+
+    .join-form {
+        flex-direction: column;
+    }
+
+    .join-form input,
+    .join-form button {
+        width: 100%;
+    }
+
+    .home-actions {
+        max-width: 100%;
+    }
+
+    .turn-status-box,
+    .waiting-room-box,
+    .winner-box {
+        border-radius: 20px;
+        padding: 15px 16px;
+        margin-bottom: 18px;
+    }
+
+    .question-card {
+        max-width: 100%;
+        padding: 14px;
+    }
+
+    .my-question {
+        margin-left: 14px;
+    }
+
+    .opponent-question {
+        margin-right: 14px;
+    }
+
+    .modal-box {
+        width: 94vw;
+        padding: 20px;
+        border-radius: 22px;
+    }
+
+    .modal-buttons {
+        flex-direction: column;
+    }
+
+    .answer-form {
+        gap: 8px;
+    }
+
+    .answer-form button {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* 很窄的手机，比如旧款 iPhone */
+@media (max-width: 380px) {
+    .page {
+        width: 96%;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .person-card {
+        padding: 6px;
+    }
+
+    .person-name {
+        font-size: 12px;
+    }
+
+    .guess-form button {
+        font-size: 10px;
+        padding: 7px 2px;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 14px;
+    }
+}
