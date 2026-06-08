@@ -35,6 +35,8 @@
         请把房间码 <strong>{{ room_code }}</strong> 发给第二位玩家。
     </div>
 
+    <div id="stickyGameControls" class="sticky-game-controls">
+
     <div id="turnStatusBox" class="turn-status-box">
         <div class="turn-status-header">
             <div class="turn-status-main">
@@ -84,6 +86,8 @@
         <div id="turnActionHint" class="turn-action-hint">
             正在读取当前可操作内容……
         </div>
+    </div>
+
     </div>
 
 
@@ -674,8 +678,10 @@
             return;
         }
 
+        // 当前页面只显示“我问的问题”和对方给我的回答。
+        // 对方问我的问题仍然会出现在“问答记录”浮窗里。
         const questions = (data.questions || []).filter(function(q) {
-            return q.round === data.current_round;
+            return q.round === data.current_round && q.from_player === currentPlayer;
         });
 
         if (!data.started || questions.length === 0) {
@@ -727,7 +733,7 @@
         const shouldShowQuestionForm = data.can_ask && !data.winner;
         const shouldShowAnswerBox = data.can_answer && pendingQuestion && !data.winner;
         const hasCurrentRoundQa = data.started && (data.questions || []).some(function(q) {
-            return q.round === data.current_round;
+            return q.round === data.current_round && q.from_player === currentPlayer;
         });
         const hasActionContent = shouldShowQuestionForm || shouldShowAnswerBox || hasCurrentRoundQa;
 
