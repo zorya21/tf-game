@@ -73,6 +73,9 @@ def make_game_state():
     p2_secret = random.choice(p2_board)
 
     return {
+        # 每一局的唯一编号，用来判断是否已经开启新局
+        "match_id": secrets.token_hex(8),
+
         "players": {
             "p1": None,
             "p2": None,
@@ -91,13 +94,7 @@ def make_game_state():
         # 当前轮次
         "round": 1,
 
-        # 当前阶段：
-        # p1_ask     玩家一提问
-        # p2_answer  玩家二回答
-        # p2_ask     玩家二提问
-        # p1_answer  玩家一回答
-        # guess      本轮猜测阶段
-        # finished   游戏结束
+        # 当前阶段
         "phase": "p1_ask",
 
         # 当前轮每个人的猜测 / 不猜记录
@@ -106,10 +103,32 @@ def make_game_state():
             "p2": None,
         },
 
+        # 每个玩家累计猜错次数，达到 3 次直接判负
+        "wrong_guesses": {
+            "p1": 0,
+            "p2": 0,
+        },
+
+        # 对局结束后，双方是否点击“再来一局”
+        "rematch_ready": {
+            "p1": False,
+            "p2": False,
+        },
+
         "questions": [],
         "guesses": [],
         "winner": None,
     }
+
+
+def reset_game_for_rematch(game):
+    old_players = game["players"]
+
+    new_game = make_game_state()
+    new_game["players"] = old_players
+
+    game.clear()
+    game.update(new_game)
 
 
 def get_game(room_code):
@@ -188,6 +207,86 @@ def resolve_guess_phase(game):
     else:
         start_next_round(game)
         
+
+def is_current_guess_round_hidden(game):
+    """
+    在猜测阶段，如果双方还没有都提交选择，就不要公开本轮猜测内容和结果。
+    这样可以避免先提交的人把答案、对错、猜错次数提前暴露给另一方。
+    """
+    if game["winner"] is not None:
+        return False
+
+    if game["phase"] != "guess":
+        return False
+
+    p1_guess = game["round_guesses"].get("p1")
+    p2_guess = game["round_guesses"].get("p2")
+
+    return p1_guess is None or p2_guess is None
+
+
+def get_public_round_guesses(game):
+    """
+    前端只需要知道双方是否已经提交本轮选择。
+    不要把 name / correct 传给浏览器，否则对方可以提前看到猜测结果。
+    """
+    public_round_guesses = {}
+
+    for player, guess in game["round_guesses"].items():
+        if guess is None:
+            public_round_guesses[player] = None
+        else:
+            public_round_guesses[player] = {
+                "submitted": True
+            }
+
+    return public_round_guesses
+
+
+def get_public_guesses(game, viewer):
+    """
+    生成给前端显示的猜测记录。
+    当前轮双方都提交前，只显示“已提交”，不显示猜了谁、是否正确。
+    """
+    hide_current_round = is_current_guess_round_hidden(game)
+    public_guesses = []
+
+    for guess in game["guesses"]:
+        if hide_current_round and guess.get("round") == game["round"]:
+            public_guesses.append({
+                "round": guess["round"],
+                "player": guess["player"],
+                "pending": True,
+                "is_mine": guess["player"] == viewer,
+            })
+        else:
+            public_guesses.append(guess)
+
+    return public_guesses
+
+
+def get_public_wrong_guesses(game):
+    """
+    猜错次数也可能泄露结果，所以当前轮双方都提交前，不统计当前轮的错误。
+    """
+    hide_current_round = is_current_guess_round_hidden(game)
+    public_wrong_guesses = {
+        "p1": 0,
+        "p2": 0,
+    }
+
+    for guess in game["guesses"]:
+        if guess.get("skipped"):
+            continue
+
+        if hide_current_round and guess.get("round") == game["round"]:
+            continue
+
+        if not guess.get("correct", False):
+            public_wrong_guesses[guess["player"]] += 1
+
+    return public_wrong_guesses
+
 
 def set_player_session(room_code, player, token):
     session[f"player_{room_code}"] = player
@@ -287,6 +386,7 @@ def game_page(room_code):
         started=started,
         current_round=game["round"],
         phase=game["phase"],
+        match_id=game["match_id"],
     )
 
 
@@ -341,20 +441,30 @@ def api_state(room_code):
     can_answer = started and game["winner"] is None and expected_answerer == player
     can_guess = started and game["winner"] is None and phase == "guess"
 
+    opponent = get_opponent(player)
+
+    my_secret = None
+    if game["winner"] is not None:
+        my_secret = game[player]["secret"]
+
     return jsonify({
         "ok": True,
         "room_code": room_code,
         "player": player,
         "started": started,
+        "match_id": game["match_id"],
         "current_round": game["round"],
         "phase": game["phase"],
         "can_ask": can_ask,
         "can_answer": can_answer,
         "can_guess": can_guess,
-        "round_guesses": game["round_guesses"],
+        "round_guesses": get_public_round_guesses(game),
+        "wrong_guesses": get_public_wrong_guesses(game),
+        "rematch_ready": game["rematch_ready"],
         "questions": game["questions"],
-        "guesses": game["guesses"],
+        "guesses": get_public_guesses(game, player),
         "winner": game["winner"],
+        "my_secret": my_secret,
     })
 
 
@@ -494,6 +604,11 @@ def guess_secret(room_code):
         return redirect(url_for("game_page", room_code=room_code))
 
     guess_name = request.form.get("guess", "").strip()
+
+    player_board_names = [card["name"] for card in game[player]["board"]]
+    if guess_name not in player_board_names:
+        return redirect(url_for("game_page", room_code=room_code))
+
     secret_name = game[player]["secret"]["name"]
     correct = guess_name == secret_name
 
@@ -507,6 +622,15 @@ def guess_secret(room_code):
 
     game["guesses"].append(guess_record)
     game["round_guesses"][player] = guess_record
+
+    # 猜错次数 +1，达到 3 次直接判负
+    if not correct:
+        game["wrong_guesses"][player] += 1
+
+        if game["wrong_guesses"][player] >= 3:
+            game["winner"] = get_opponent(player)
+            game["phase"] = "finished"
+            return redirect(url_for("game_page", room_code=room_code))
 
     resolve_guess_phase(game)
 
@@ -546,5 +670,39 @@ def api_skip_guess(room_code):
 
     return jsonify({"ok": True})
 
+
+@app.post("/api/rematch/<room_code>")
+def api_rematch(room_code):
+    room_code = room_code.upper()
+    game = get_game(room_code)
+    player = get_current_player(room_code)
+
+    if player is None:
+        return jsonify({"ok": False, "error": "你不是这个房间的玩家。"}), 403
+
+    if game["winner"] is None or game["phase"] != "finished":
+        return jsonify({"ok": False, "error": "只有对局结束后才能再来一局。"}), 400
+
+    game["rematch_ready"][player] = True
+
+    opponent = get_opponent(player)
+
+    # 双方都点击后，直接开启新一局
+    if game["rematch_ready"][opponent]:
+        reset_game_for_rematch(game)
+
+        return jsonify({
+            "ok": True,
+            "restarted": True,
+            "match_id": game["match_id"],
+        })
+
+    return jsonify({
+        "ok": True,
+        "restarted": False,
+        "rematch_ready": game["rematch_ready"],
+    })
+    
+    
 if __name__ == "__main__":
     app.run(debug=True)
