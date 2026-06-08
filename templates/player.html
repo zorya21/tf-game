@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>猜猜我是谁sdfj版</title>
+    <title>猜猜我是谁</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -16,7 +16,12 @@
     <header class="top-bar">
         <div>
             <h1>{{ player_label }} 页面</h1>
-            <p>房间码：<strong>{{ room_code }}</strong></p>
+            <p class="room-code-line">
+                房间码：<strong id="roomCodeText">{{ room_code }}</strong>
+                <button type="button" class="copy-room-btn" onclick="copyRoomCode()">
+                    复制房间码
+                </button>
+            </p>
         </div>
 
         <a class="small-link" href="{{ url_for('index') }}">
@@ -34,6 +39,7 @@
         正在加载当前轮次……
     </div>
 
+
     {% if winner %}
         <div class="winner-box">
             {% if winner == "draw" %}
@@ -45,6 +51,25 @@
             {% endif %}
         </div>
     {% endif %}
+
+    <div id="endRevealBox" class="end-reveal-box hidden">
+        <h2>本局结束</h2>
+
+        <p>你的秘密人物是：</p>
+
+        <div class="secret-card end-secret-card">
+            <img id="mySecretImage" src="" alt="" class="hidden">
+            <div id="mySecretName"></div>
+        </div>
+
+        <button id="rematchButton" type="button" class="rematch-button">
+            再来一局
+        </button>
+
+        <p id="rematchStatusText" class="rematch-status-text">
+            双方都点击后会开启新一局。
+        </p>
+    </div>
 
     <section class="secret-section">
         <h2>对方的秘密人物</h2>
@@ -61,12 +86,21 @@
     </section>
 
     <section class="board-section">
-        <h2>你的秘密人物在以下24人中</h2>
+        <div class="board-header-row">
+            <div class="board-title-text">
+                <h2>你的秘密人物在以下24人中</h2>
 
-        <p>
-            猜出自己的秘密人物即可获胜，通过提问来排除吧！
-            点击卡片可以标记“排除”。
-        </p>
+                <p>
+                    猜出自己的秘密人物即可获胜，通过提问来排除吧！
+                    点击卡片可以标记“排除”。
+                </p>
+            </div>
+
+            <div id="wrongCountBox" class="wrong-count-box board-wrong-count">
+                <div>猜测次数：正在加载……</div>
+                <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+            </div>
+        </div>
 
         <div id="guessPhaseActions" class="guess-phase-actions hidden">
             <button id="skipGuessButton" type="button">
@@ -169,12 +203,14 @@
 <script>
     const roomCode = "{{ room_code }}";
     const currentPlayer = "{{ player }}";
+    let currentMatchId = "{{ match_id }}";
 
     const toggleUrl = "{{ url_for('toggle_card', room_code=room_code) }}";
     const stateUrl = "{{ url_for('api_state', room_code=room_code) }}";
     const askUrl = "{{ url_for('api_ask_question', room_code=room_code) }}";
     const skipGuessUrl = "{{ url_for('api_skip_guess', room_code=room_code) }}";
-
+    const rematchUrl = "{{ url_for('api_rematch', room_code=room_code) }}";
+    const cardBaseUrl = "{{ url_for('static', filename='cards/') }}";
     let pendingGuessForm = null;
     let canAskNow = false;
     let canGuessNow = false;
@@ -195,6 +231,53 @@
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
+    }
+
+    function copyRoomCode() {
+        const roomCodeText = document.getElementById("roomCodeText");
+        const copyButton = document.querySelector(".copy-room-btn");
+
+        if (!roomCodeText) {
+            return;
+        }
+
+        const code = roomCodeText.textContent.trim();
+
+        function showCopied() {
+            if (!copyButton) {
+                return;
+            }
+
+            const originalText = copyButton.textContent;
+            copyButton.textContent = "已复制";
+            copyButton.disabled = true;
+
+            setTimeout(function() {
+                copyButton.textContent = originalText;
+                copyButton.disabled = false;
+            }, 1200);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code).then(showCopied).catch(function() {
+                alert("复制失败，请手动复制房间码。");
+            });
+            return;
+        }
+
+        const tempInput = document.createElement("input");
+        tempInput.value = code;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+
+        try {
+            document.execCommand("copy");
+            showCopied();
+        } catch (error) {
+            alert("复制失败，请手动复制房间码。");
+        }
+
+        document.body.removeChild(tempInput);
     }
 
     function openGuessModal(form, name) {
@@ -271,13 +354,21 @@
                 return;
             }
 
+            if (data.match_id && data.match_id !== currentMatchId) {
+                window.location.reload();
+                return;
+            }
+
             renderWaitingBox(data.started);
             renderTurnStatus(data);
+            renderWrongCounts(data);
             renderQuestions(data.questions, data);
             renderGuesses(data.guesses);
             renderWinner(data.winner);
+            renderEndReveal(data);
             updateQuestionForm(data);
             updateGuessControls(data);
+            
         } catch (error) {
             console.log("加载最新状态失败", error);
         }
@@ -336,6 +427,8 @@
         } else if (phase === "guess") {
             if (myGuess && !opponentGuess) {
                 text = `第 ${round} 轮：你已经做出选择，等待对方本轮猜测或选择不猜。`;
+            } else if (!myGuess && opponentGuess) {
+                text = `第 ${round} 轮：对方已经做出选择，现在轮到你猜测或选择不猜。`;
             } else if (!myGuess) {
                 text = `第 ${round} 轮：本轮问答已完成，现在可以猜测，也可以选择本轮不猜。`;
             } else {
@@ -348,6 +441,28 @@
         }
 
         box.textContent = text;
+    }
+
+    function renderWrongCounts(data) {
+        const box = document.getElementById("wrongCountBox");
+
+        if (!box) {
+            return;
+        }
+
+        const wrongGuesses = data.wrong_guesses || {};
+        const myWrong = wrongGuesses[currentPlayer] || 0;
+
+        box.innerHTML = `
+            <div>猜测次数：<strong>${myWrong} / 3</strong></div>
+            <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+        `;
+
+        if (myWrong >= 2) {
+            box.classList.add("danger");
+        } else {
+            box.classList.remove("danger");
+        }
     }
 
     function updateQuestionForm(data) {
@@ -507,7 +622,12 @@
 
             const who = g.player === currentPlayer ? "我" : playerName(g.player);
 
-            if (g.skipped) {
+            if (g.pending) {
+                card.innerHTML = `
+                    <p>${who} 已做出本轮选择。</p>
+                    <p class="waiting-text">双方都提交后，才会公开猜测内容和结果。</p>
+                `;
+            } else if (g.skipped) {
                 card.innerHTML = `
                     <p>${who} 选择了：<strong>本轮不猜</strong></p>
                 `;
@@ -618,10 +738,40 @@
         }
     });
 
+    document.getElementById("rematchButton").addEventListener("click", async function() {
+        try {
+            const response = await fetch(rematchUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "操作失败");
+                return;
+            }
+
+            if (data.restarted) {
+                window.location.reload();
+                return;
+            }
+
+            loadGameState();
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    });
+
     function renderWinner(winner) {
         const oldWinnerBox = document.querySelector(".winner-box");
 
         if (!winner) {
+            if (oldWinnerBox) {
+                oldWinnerBox.remove();
+            }
             return;
         }
 
@@ -644,6 +794,58 @@
         }
 
         page.insertBefore(winnerBox, topBar.nextSibling);
+    }
+
+    function renderEndReveal(data) {
+        const box = document.getElementById("endRevealBox");
+
+        if (!box) {
+            return;
+        }
+
+        if (!data.winner) {
+            box.classList.add("hidden");
+            return;
+        }
+
+        box.classList.remove("hidden");
+
+        const image = document.getElementById("mySecretImage");
+        const name = document.getElementById("mySecretName");
+
+        if (data.my_secret) {
+            image.src = cardBaseUrl + data.my_secret.image;
+            image.alt = data.my_secret.name;
+            image.classList.remove("hidden");
+            name.textContent = data.my_secret.name;
+        }
+
+        const rematchButton = document.getElementById("rematchButton");
+        const rematchStatusText = document.getElementById("rematchStatusText");
+
+        const ready = data.rematch_ready || {};
+        const opponent = getOpponentPlayer();
+
+        const iAmReady = Boolean(ready[currentPlayer]);
+        const opponentReady = Boolean(ready[opponent]);
+
+        if (iAmReady) {
+            rematchButton.disabled = true;
+            rematchButton.textContent = "已申请再来一局";
+        } else {
+            rematchButton.disabled = false;
+            rematchButton.textContent = "再来一局";
+        }
+
+        if (iAmReady && opponentReady) {
+            rematchStatusText.textContent = "双方都已准备，正在开启新一局……";
+        } else if (iAmReady) {
+            rematchStatusText.textContent = "你已点击再来一局，等待对方确认。";
+        } else if (opponentReady) {
+            rematchStatusText.textContent = "对方想再来一局，你也点击后会马上开启新局。";
+        } else {
+            rematchStatusText.textContent = "双方都点击再来一局后，会生成新的卡池和秘密人物。";
+        }
     }
 
     document.querySelectorAll(".guess-form").forEach(function(form) {
