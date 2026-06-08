@@ -42,12 +42,34 @@
 
     {% if winner %}
         <div class="winner-box">
-            {% if winner == "draw" %}
-                🤝 平局！你们在同一轮都猜中了。
-            {% elif winner == player %}
-                🎉 猜中啦！恭喜你赢下这局！
+            {% if finish_reason == "both_correct" %}
+                🤝 平局！你们在同一轮都猜中了秘密人物。
+
+            {% elif finish_reason == "both_max_wrong" %}
+                🤝 平局！双方都已经猜错 3 次，本局无人获胜。
+
+            {% elif finish_reason == "max_wrong" %}
+                {% if winner == player %}
+                    🎉 对方已经猜错 3 次，你自动获胜！
+                {% else %}
+                    😭 你已经猜错 3 次，本局失败。
+                {% endif %}
+
+            {% elif finish_reason == "correct_guess" %}
+                {% if winner == player %}
+                    🎉 你率先猜中了秘密人物，恭喜获胜！
+                {% else %}
+                    😭 {{ opponent_label }} 率先猜中了秘密人物，你失败了。
+                {% endif %}
+
             {% else %}
-                😭 {{ opponent_label }} 猜中了秘密人物。
+                {% if winner == "draw" %}
+                    🤝 平局！
+                {% elif winner == player %}
+                    🎉 你赢了！
+                {% else %}
+                    😭 你输了。
+                {% endif %}
             {% endif %}
         </div>
     {% endif %}
@@ -92,13 +114,18 @@
 
                 <p>
                     猜出自己的秘密人物即可获胜，通过提问来排除吧！
-                    点击卡片可以标记“排除”。
                 </p>
             </div>
 
-            <div id="wrongCountBox" class="wrong-count-box board-wrong-count">
-                <div>猜测次数：正在加载……</div>
-                <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+            <div class="board-right-info">
+                <div id="wrongCountBox" class="wrong-count-box board-wrong-count">
+                    <div>猜测次数：正在加载……</div>
+                    <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+                </div>
+
+                <p class="eliminate-tip">
+                    点击标记“排除”
+                </p>
             </div>
         </div>
 
@@ -364,7 +391,7 @@
             renderWrongCounts(data);
             renderQuestions(data.questions, data);
             renderGuesses(data.guesses);
-            renderWinner(data.winner);
+            renderWinner(data);
             renderEndReveal(data);
             updateQuestionForm(data);
             updateGuessControls(data);
@@ -765,7 +792,49 @@
         }
     });
 
-    function renderWinner(winner) {
+    function getWinnerMessage(data) {
+        const winner = data.winner;
+        const finishReason = data.finish_reason;
+
+        if (finishReason === "both_correct") {
+            return "🤝 平局！你们在同一轮都猜中了秘密人物。";
+        }
+
+        if (finishReason === "both_max_wrong") {
+            return "🤝 平局！双方都已经猜错 3 次，本局无人获胜。";
+        }
+
+        if (finishReason === "max_wrong") {
+            if (winner === currentPlayer) {
+                return "🎉 对方已经猜错 3 次，你自动获胜！";
+            }
+
+            return "😭 你已经猜错 3 次，本局失败。";
+        }
+
+        if (finishReason === "correct_guess") {
+            if (winner === currentPlayer) {
+                return "🎉 你率先猜中了秘密人物，恭喜获胜！";
+            }
+
+            return "😭 " + playerName(winner) + " 率先猜中了秘密人物，你失败了。";
+        }
+
+        // 旧数据兜底
+        if (winner === "draw") {
+            return "🤝 平局！";
+        }
+
+        if (winner === currentPlayer) {
+            return "🎉 你赢了！";
+        }
+
+        return "😭 你输了。";
+    }
+
+
+    function renderWinner(data) {
+        const winner = data.winner;
         const oldWinnerBox = document.querySelector(".winner-box");
 
         if (!winner) {
@@ -775,7 +844,10 @@
             return;
         }
 
+        const message = getWinnerMessage(data);
+
         if (oldWinnerBox) {
+            oldWinnerBox.textContent = message;
             return;
         }
 
@@ -784,14 +856,7 @@
 
         const winnerBox = document.createElement("div");
         winnerBox.className = "winner-box";
-
-        if (winner === "draw") {
-            winnerBox.textContent = "🤝 平局！你们在同一轮都猜中了。";
-        } else if (winner === currentPlayer) {
-            winnerBox.textContent = "🎉 你猜中了！你赢了！";
-        } else {
-            winnerBox.textContent = "😭 " + playerName(winner) + " 猜中了秘密人物。";
-        }
+        winnerBox.textContent = message;
 
         page.insertBefore(winnerBox, topBar.nextSibling);
     }
