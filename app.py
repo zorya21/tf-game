@@ -118,6 +118,10 @@ def make_game_state():
         "questions": [],
         "guesses": [],
         "winner": None,
+
+        # 记录游戏结束原因
+        # correct_guess / both_correct / max_wrong / both_max_wrong
+        "finish_reason": None,
     }
 
 
@@ -184,6 +188,12 @@ def start_next_round(game):
     }
 
 
+def finish_game(game, winner, finish_reason):
+    game["winner"] = winner
+    game["finish_reason"] = finish_reason
+    game["phase"] = "finished"
+
+
 def resolve_guess_phase(game):
     p1_guess = game["round_guesses"]["p1"]
     p2_guess = game["round_guesses"]["p2"]
@@ -195,15 +205,34 @@ def resolve_guess_phase(game):
     p1_correct = p1_guess.get("correct", False)
     p2_correct = p2_guess.get("correct", False)
 
+    p1_reached_limit = game["wrong_guesses"]["p1"] >= 3
+    p2_reached_limit = game["wrong_guesses"]["p2"] >= 3
+
+    # 情况 1：双方同时猜中
     if p1_correct and p2_correct:
-        game["winner"] = "draw"
-        game["phase"] = "finished"
+        finish_game(game, "draw", "both_correct")
+
+    # 情况 2：只有玩家一猜中
     elif p1_correct:
-        game["winner"] = "p1"
-        game["phase"] = "finished"
+        finish_game(game, "p1", "correct_guess")
+
+    # 情况 3：只有玩家二猜中
     elif p2_correct:
-        game["winner"] = "p2"
-        game["phase"] = "finished"
+        finish_game(game, "p2", "correct_guess")
+
+    # 情况 4：双方同时达到 3 次猜错
+    elif p1_reached_limit and p2_reached_limit:
+        finish_game(game, "draw", "both_max_wrong")
+
+    # 情况 5：玩家一猜错 3 次，玩家二获胜
+    elif p1_reached_limit:
+        finish_game(game, "p2", "max_wrong")
+
+    # 情况 6：玩家二猜错 3 次，玩家一获胜
+    elif p2_reached_limit:
+        finish_game(game, "p1", "max_wrong")
+
+    # 情况 7：没人猜中，也没人达到 3 次猜错，进入下一轮
     else:
         start_next_round(game)
         
@@ -383,6 +412,7 @@ def game_page(room_code):
         questions=game["questions"],
         guesses=game["guesses"],
         winner=game["winner"],
+        finish_reason=game.get("finish_reason"),
         started=started,
         current_round=game["round"],
         phase=game["phase"],
@@ -464,6 +494,7 @@ def api_state(room_code):
         "questions": game["questions"],
         "guesses": get_public_guesses(game, player),
         "winner": game["winner"],
+        "finish_reason": game.get("finish_reason"),
         "my_secret": my_secret,
     })
 
@@ -623,14 +654,11 @@ def guess_secret(room_code):
     game["guesses"].append(guess_record)
     game["round_guesses"][player] = guess_record
 
-    # 猜错次数 +1，达到 3 次直接判负
+    # 猜错次数 +1
+    # 注意：不要在这里立刻判负
+    # 要等双方都完成本轮选择后，再统一结算
     if not correct:
         game["wrong_guesses"][player] += 1
-
-        if game["wrong_guesses"][player] >= 3:
-            game["winner"] = get_opponent(player)
-            game["phase"] = "finished"
-            return redirect(url_for("game_page", room_code=room_code))
 
     resolve_guess_phase(game)
 
