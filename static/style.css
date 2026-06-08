@@ -558,17 +558,22 @@ button:disabled,
     display: none !important;
 }
 
-/* 当前轮次提示 */
+/* 当前轮次提示：所有端都 sticky */
 .turn-status-box {
-    background: #ffffff;
+    position: sticky;
+    top: 12px;
+    z-index: 100;
+
+    background: rgba(255, 255, 255, 0.96);
     color: #333;
     border: 1px solid #d8d6d2;
     border-radius: 22px;
     padding: 16px 18px;
     margin-bottom: 24px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     font-weight: 600;
     line-height: 1.6;
+    backdrop-filter: blur(6px);
 }
 
 .round-title {
@@ -822,9 +827,7 @@ button:disabled,
     }
 
     .turn-status-box {
-        position: sticky;
         top: 8px;
-        z-index: 50;
     }
 
     .question-card {
