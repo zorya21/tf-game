@@ -3,6 +3,7 @@ import random
 import secrets
 import string
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key")
@@ -117,6 +118,7 @@ def make_game_state():
 
         "questions": [],
         "guesses": [],
+        "chat_messages": [],
         "winner": None,
 
         # 记录游戏结束原因
@@ -127,9 +129,11 @@ def make_game_state():
 
 def reset_game_for_rematch(game):
     old_players = game["players"]
+    old_chat_messages = game.get("chat_messages", [])
 
     new_game = make_game_state()
     new_game["players"] = old_players
+    new_game["chat_messages"] = old_chat_messages
 
     game.clear()
     game.update(new_game)
@@ -493,6 +497,7 @@ def api_state(room_code):
         "rematch_ready": game["rematch_ready"],
         "questions": game["questions"],
         "guesses": get_public_guesses(game, player),
+        "chat_messages": game.get("chat_messages", []),
         "winner": game["winner"],
         "finish_reason": game.get("finish_reason"),
         "my_secret": my_secret,
@@ -697,6 +702,44 @@ def api_skip_guess(room_code):
     resolve_guess_phase(game)
 
     return jsonify({"ok": True})
+
+
+@app.post("/api/chat/<room_code>")
+def api_send_chat(room_code):
+    room_code = room_code.upper()
+    game = get_game(room_code)
+    player = get_current_player(room_code)
+
+    if player is None:
+        return jsonify({"ok": False, "error": "你不是这个房间的玩家。"}), 403
+
+    data = request.get_json(silent=True) or {}
+    message = data.get("message", "").strip()
+
+    if not message:
+        return jsonify({"ok": False, "error": "消息不能为空。"}), 400
+
+    if len(message) > 300:
+        return jsonify({"ok": False, "error": "消息太长了，请控制在 300 字以内。"}), 400
+
+    chat_record = {
+        "id": secrets.token_hex(4),
+        "player": player,
+        "text": message,
+        "created_at": datetime.now().strftime("%H:%M"),
+    }
+
+    game.setdefault("chat_messages", []).append(chat_record)
+
+    # 防止房间一直运行时聊天记录无限增长，只保留最近 100 条。
+    if len(game["chat_messages"]) > 100:
+        game["chat_messages"] = game["chat_messages"][-100:]
+
+    return jsonify({
+        "ok": True,
+        "message": chat_record,
+        "chat_messages": game["chat_messages"],
+    })
 
 
 @app.post("/api/rematch/<room_code>")
