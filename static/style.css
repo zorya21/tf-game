@@ -2337,3 +2337,163 @@ button:disabled,
         width: 100%;
     }
 }
+
+
+/* ===== 2026-06-08 二次手感修正：sticky 组合区、手机输入框、猜测次数居中 ===== */
+
+/* 把流程条 + 问答区作为一个整体 sticky，避免两个区域分开占位。 */
+.sticky-game-controls {
+    position: sticky;
+    top: 6px;
+    z-index: 360;
+    margin-bottom: 12px;
+}
+
+.sticky-game-controls .turn-status-box {
+    position: relative;
+    top: auto;
+    margin-bottom: 6px;
+}
+
+.sticky-game-controls .turn-action-area.turn-action-card {
+    margin-bottom: 0;
+}
+
+/* 猜测次数小椭圆内文字居中。 */
+.wrong-count-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 158px;
+}
+
+.wrong-count-box > div {
+    width: 100%;
+    text-align: center;
+}
+
+.board-right-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* 输入问题这一行：输入框占主要空间，发送按钮保持小尺寸。 */
+.compact-question-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.compact-question-form input {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+}
+
+.compact-question-form button {
+    flex: 0 0 auto;
+    width: auto !important;
+    white-space: nowrap;
+}
+
+/* 当前轮小问答只显示自己问的问题，所以边框统一为“我的问题”的样式。 */
+.current-round-qa-item {
+    border-left: 1px solid #e4e1dd;
+    border-right: 5px solid #2f2f2f;
+}
+
+.opponent-current-qa {
+    border-left: 1px solid #e4e1dd;
+    border-right: 5px solid #2f2f2f;
+}
+
+@media (max-width: 900px) {
+    .sticky-game-controls {
+        top: 5px;
+        margin-bottom: 10px;
+    }
+
+    .compact-question-form {
+        gap: 7px;
+    }
+
+    .compact-question-form input {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+
+    .compact-question-form button {
+        min-height: 34px;
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 600px) {
+    .sticky-game-controls {
+        top: 4px;
+        margin-bottom: 9px;
+    }
+
+    .sticky-game-controls .turn-status-box {
+        margin-bottom: 5px;
+    }
+
+    .compact-question-form {
+        flex-direction: row !important;
+        gap: 6px;
+    }
+
+    .compact-question-form input {
+        flex: 1 1 auto;
+        width: auto !important;
+        min-width: 0;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 13px;
+    }
+
+    .compact-question-form button {
+        flex: 0 0 auto;
+        width: auto !important;
+        min-width: 72px;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 12px;
+    }
+
+    .wrong-count-box {
+        min-width: 128px;
+        padding: 7px 10px;
+    }
+
+    .wrong-count-hint {
+        font-size: 11px;
+        margin-top: 3px;
+    }
+}
+
+@media (max-width: 380px) {
+    .compact-question-form {
+        flex-direction: row !important;
+    }
+
+    .compact-question-form input {
+        width: auto !important;
+        min-width: 0;
+    }
+
+    .compact-question-form button {
+        width: auto !important;
+        min-width: 66px;
+        padding-left: 7px;
+        padding-right: 7px;
+        font-size: 11px;
+    }
+}
