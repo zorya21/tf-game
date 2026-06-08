@@ -223,6 +223,16 @@ button:disabled,
     margin-bottom: 0;
 }
 
+/* 点击排除提示 */
+.eliminate-tip {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
+    margin-top: 10px;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
 .link-box a {
     word-break: break-all;
     color: #333;
@@ -661,6 +671,7 @@ button:disabled,
     min-height: 44px;
 }
 
+
 /* iPad 横屏 / 小电脑：仍然保持 6 列 */
 @media (max-width: 1180px) {
     .page {
@@ -752,6 +763,11 @@ button:disabled,
     .board-title-text p {
         font-size: 13px;
         line-height: 1.5;
+    }
+
+    .eliminate-tip {
+        font-size: 16px;
+        font-weight: 800;
     }
 
     .board-wrong-count {
