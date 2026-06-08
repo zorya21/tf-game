@@ -103,14 +103,14 @@
                 {% if winner == player %}
                     🎉 对方已经猜错 3 次，你自动获胜！
                 {% else %}
-                    😭 你已经猜错 3 次，本局失败。
+                    😭 你已经猜错 3 次. . .
                 {% endif %}
 
             {% elif finish_reason == "correct_guess" %}
                 {% if winner == player %}
                     🎉 你率先猜中了秘密人物，恭喜获胜！
                 {% else %}
-                    😭 {{ opponent_label }} 率先猜中了秘密人物，你失败了。
+                    😭 {{ opponent_label }} 率先猜中了秘密人物. . .
                 {% endif %}
 
             {% else %}
@@ -1172,7 +1172,7 @@
                 return "🎉 对方已经猜错 3 次，你自动获胜！";
             }
 
-            return "😭 你已经猜错 3 次，本局失败。";
+            return "😭 你已经猜错 3 次. . .";
         }
 
         if (finishReason === "correct_guess") {
@@ -1180,7 +1180,7 @@
                 return "🎉 你率先猜中了秘密人物，恭喜获胜！";
             }
 
-            return "😭 " + playerName(winner) + " 率先猜中了秘密人物，你失败了。";
+            return "😭 " + playerName(winner) + " 率先猜中了秘密人物. . .";
         }
 
         // 旧数据兜底
@@ -1195,33 +1195,40 @@
         return "😭 你输了。";
     }
 
-
     function renderWinner(data) {
         const winner = data.winner;
-        const oldWinnerBox = document.querySelector(".winner-box");
+        let winnerBox = document.querySelector(".winner-box");
 
         if (!winner) {
-            if (oldWinnerBox) {
-                oldWinnerBox.remove();
+            if (winnerBox) {
+                winnerBox.remove();
             }
             return;
         }
 
         const message = getWinnerMessage(data);
 
-        if (oldWinnerBox) {
-            oldWinnerBox.textContent = message;
-            return;
+        if (!winnerBox) {
+            winnerBox = document.createElement("div");
+            winnerBox.className = "winner-box";
+
+            const stickyControls = document.getElementById("stickyGameControls");
+            const endRevealBox = document.getElementById("endRevealBox");
+            const page = document.querySelector(".page");
+
+            // 优先插在 sticky 流程区下面
+            if (stickyControls) {
+                stickyControls.insertAdjacentElement("afterend", winnerBox);
+            } else if (endRevealBox && endRevealBox.parentNode) {
+                endRevealBox.parentNode.insertBefore(winnerBox, endRevealBox);
+            } else if (page) {
+                page.prepend(winnerBox);
+            } else {
+                document.body.prepend(winnerBox);
+            }
         }
 
-        const page = document.querySelector(".page");
-        const turnStatusBox = document.getElementById("turnStatusBox");
-
-        const winnerBox = document.createElement("div");
-        winnerBox.className = "winner-box";
         winnerBox.textContent = message;
-
-        page.insertBefore(winnerBox, turnStatusBox.nextSibling);
     }
 
     function renderEndReveal(data) {
