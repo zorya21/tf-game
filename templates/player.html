@@ -52,37 +52,37 @@
                 </button>
             </div>
         </div>
+    </div>
 
-        <div id="turnActionArea" class="turn-action-area">
-            <form id="questionForm" class="question-form compact-question-form hidden">
-                <input
-                    id="questionInput"
-                    type="text"
-                    name="question"
-                    placeholder="请只问是非题，eg.这个人的名字是三个字吗？"
-                    autocomplete="off"
-                    required
-                >
-                <button type="submit">发送问题</button>
-            </form>
+    <div id="turnActionArea" class="turn-action-area turn-action-card">
+        <form id="questionForm" class="question-form compact-question-form hidden">
+            <input
+                id="questionInput"
+                type="text"
+                name="question"
+                placeholder="请只问是非题，eg.这个人的名字是三个字吗？"
+                autocomplete="off"
+                required
+            >
+            <button type="submit">发送问题</button>
+        </form>
 
-            <div id="answerActionBox" class="turn-answer-box hidden">
-                <div class="answer-preview-label">请回答对方的问题：</div>
-                <div id="answerQuestionPreview" class="answer-question-preview"></div>
-                <div class="answer-form inline-answer-buttons">
-                    <button id="answerYesButton" type="button">是</button>
-                    <button id="answerNoButton" type="button">否</button>
-                </div>
+        <div id="answerActionBox" class="turn-answer-box hidden">
+            <div class="answer-preview-label">请回答对方的问题：</div>
+            <div id="answerQuestionPreview" class="answer-question-preview"></div>
+            <div class="answer-form inline-answer-buttons">
+                <button id="answerYesButton" type="button">是</button>
+                <button id="answerNoButton" type="button">否</button>
             </div>
+        </div>
 
-            <div id="currentRoundQaBox" class="current-round-qa-box hidden">
-                <div class="current-round-qa-title">本轮问答</div>
-                <div id="currentRoundQaList" class="current-round-qa-list"></div>
-            </div>
+        <div id="currentRoundQaBox" class="current-round-qa-box hidden">
+            <div class="current-round-qa-title">本轮问答</div>
+            <div id="currentRoundQaList" class="current-round-qa-list"></div>
+        </div>
 
-            <div id="turnActionHint" class="turn-action-hint">
-                正在读取当前可操作内容……
-            </div>
+        <div id="turnActionHint" class="turn-action-hint">
+            正在读取当前可操作内容……
         </div>
     </div>
 
@@ -715,6 +715,7 @@
     }
 
     function renderTurnAction(data) {
+        const actionArea = document.getElementById("turnActionArea");
         const questionFormBox = document.getElementById("questionForm");
         const answerBox = document.getElementById("answerActionBox");
         const actionHint = document.getElementById("turnActionHint");
@@ -725,6 +726,15 @@
         const pendingQuestion = findPendingAnswerQuestion(data);
         const shouldShowQuestionForm = data.can_ask && !data.winner;
         const shouldShowAnswerBox = data.can_answer && pendingQuestion && !data.winner;
+        const hasCurrentRoundQa = data.started && (data.questions || []).some(function(q) {
+            return q.round === data.current_round;
+        });
+        const hasActionContent = shouldShowQuestionForm || shouldShowAnswerBox || hasCurrentRoundQa;
+
+        if (actionArea) {
+            actionArea.classList.toggle("is-active", shouldShowQuestionForm || shouldShowAnswerBox);
+            actionArea.classList.toggle("is-idle", !hasActionContent);
+        }
 
         questionFormBox.classList.toggle("hidden", !shouldShowQuestionForm);
         answerBox.classList.toggle("hidden", !shouldShowAnswerBox);
