@@ -62,7 +62,7 @@
                 id="questionInput"
                 type="text"
                 name="question"
-                placeholder="请只问是非题，eg.这个人的名字是三个字吗？"
+                placeholder="请只问是非题，eg.此人是否姓张？"
                 autocomplete="off"
                 required
             >
@@ -770,7 +770,7 @@
         } else if (data.winner) {
             actionHint.textContent = "本局已结束，可以点击上方按钮查看记录或打开聊天。";
         } else if (data.phase === "guess") {
-            actionHint.textContent = "现在是猜测阶段：请在下方人物卡上选择猜测，或点击“本轮不猜”。";
+            actionHint.textContent = "现在是猜测阶段：请进行猜测或本轮不猜。";
         } else {
             actionHint.textContent = "现在还没有轮到你操作，请等待对方。";
         }
@@ -812,7 +812,7 @@
         } else if (data.winner) {
             questionInput.placeholder = "游戏已经结束";
         } else if (canAskNow) {
-            questionInput.placeholder = "请只问是非题，eg.这个人的名字是三个字吗？";
+            questionInput.placeholder = "请只问是非题，eg.此人是否姓张？";
         } else {
             questionInput.placeholder = "还没有轮到你提问";
         }
