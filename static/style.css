@@ -88,6 +88,31 @@ p {
     white-space: nowrap;
 }
 
+/* 房间码复制按钮 */
+.room-code-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.copy-room-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    background: #eeeeee;
+    color: #333;
+    font-size: 13px;
+    min-height: 34px;
+    transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.copy-room-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
 /* 按钮统一风格 */
 .main-btn,
 .danger-btn,
@@ -157,7 +182,8 @@ button:disabled,
         background: #dddddd;
     }
 
-    .small-link:hover {
+    .small-link:hover,
+    .copy-room-btn:not(:disabled):hover {
         background: #f6f6f6;
     }
 }
@@ -174,6 +200,27 @@ button:disabled,
     margin-bottom: 24px;
     border: 1px solid var(--border-main);
     box-shadow: var(--shadow-soft);
+}
+
+/* 卡池标题行：左边是说明，右上角是自己的猜错次数 */
+.board-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.board-title-text {
+    min-width: 0;
+}
+
+.board-title-text h2 {
+    margin-bottom: 10px;
+}
+
+.board-title-text p {
+    margin-bottom: 0;
 }
 
 .link-box a {
@@ -688,6 +735,25 @@ button:disabled,
         margin-bottom: 18px;
     }
 
+    .board-header-row {
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .board-title-text h2 {
+        font-size: 18px;
+    }
+
+    .board-title-text p {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .board-wrong-count {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+
     .cards-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 9px;
@@ -755,6 +821,12 @@ button:disabled,
         margin-bottom: 18px;
     }
 
+    .turn-status-box {
+        position: sticky;
+        top: 8px;
+        z-index: 50;
+    }
+
     .question-card {
         max-width: 100%;
         padding: 14px;
@@ -818,5 +890,147 @@ button:disabled,
     .log-section,
     .board-section {
         padding: 14px;
+    }
+}
+
+.wrong-count-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 999px;
+    padding: 10px 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.board-wrong-count {
+    margin-left: auto;
+    margin-top: 2px;
+}
+
+.wrong-count-box strong {
+    color: #111;
+}
+
+.wrong-count-hint {
+    margin-top: 6px;
+    color: #666;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.wrong-count-box.danger {
+    border-color: #777;
+    background: #f7f7f7;
+}
+
+.restart-request-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 22px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.restart-request-box strong {
+    color: #111;
+}
+
+.restart-request-status {
+    margin: 6px 0 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.restart-request-button {
+    border: none;
+    border-radius: 999px;
+    padding: 11px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    background: #2f2f2f;
+    color: white;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.restart-request-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.end-reveal-box {
+    background: rgba(255,255,255,0.94);
+    color: #222;
+    border: 1px solid #d8d6d2;
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.end-reveal-box h2 {
+    margin-bottom: 10px;
+}
+
+.end-secret-card {
+    margin: 14px auto 18px;
+}
+
+.rematch-button {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 16px;
+    background: #2f2f2f;
+    color: white;
+    min-height: 44px;
+}
+
+.rematch-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.rematch-status-text {
+    margin-top: 12px;
+    color: #666;
+    font-size: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rematch-button:not(:disabled):hover,
+    .restart-request-button:not(:disabled):hover {
+        background: #444;
+    }
+}
+
+@media (max-width: 600px) {
+    .restart-request-box,
+    .end-reveal-box {
+        border-radius: 20px;
+        padding: 15px 16px;
+        margin-bottom: 18px;
+    }
+
+    .restart-request-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rematch-button,
+    .restart-request-button {
+        width: 100%;
     }
 }
